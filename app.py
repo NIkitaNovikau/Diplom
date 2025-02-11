@@ -70,5 +70,3 @@ def main():
         items = parse_items(xml_content)
         news_list = [extract_news(item) for item in items]
         print_news(news_list, source_name)
-
-
