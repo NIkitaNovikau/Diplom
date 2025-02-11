@@ -1,6 +1,7 @@
 import requests
 import xml.etree.ElementTree as ET
 import re
+from database import create_db, save_news
 
 # Словарь RSS-источников (название: ссылка)
 rss_sources = {
@@ -51,20 +52,19 @@ def extract_news(item):
     }
 
 def print_news(news_list, source_name):
-    """Выводит новости в консоль."""
+    """Выводит новости в консоль и сохраняет их в базу данных."""
     print(f'\n=== Новости из {source_name} ===')
-    for idx, news in enumerate(news_list, 1):
-        print(f'\n{idx}. Название: {news["title"]}')
+    for news in news_list:
+        print(f'\nНазвание: {news["title"]}')
         print(f'   Ссылка: {news["link"]}')
         print(f'   Опубликовано: {news["pub_date"]}')
         print(f'   Описание: {news["description"]}')
-        if news["image_url"]:
-            print(f'   Изображение: {news["image_url"]}')
-        else:
-            print(f'   Изображение отсутствует')
+        print(f'   Изображение: {news["image_url"]}' if news["image_url"] else '   Изображение отсутствует')
+        save_news(source_name, news["title"], news["link"], news["pub_date"], news["description"], news["image_url"])
 
 def main():
-    """Главная функция, запускающая парсинг всех RSS-лент."""
+    """Главная функция, запускающая парсинг всех RSS-лент и сохранение в БД."""
+    create_db()
     for source_name, rss_url in rss_sources.items():
         xml_content = fetch_rss(rss_url)
         items = parse_items(xml_content)
