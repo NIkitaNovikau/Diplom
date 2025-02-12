@@ -1,8 +1,8 @@
 import sqlite3
-#нужно чтобы не удаляла а чтобы не записывало такое же
+
 def create_db():
     """Создает таблицу для хранения новостей, если её нет."""
-    conn = sqlite3.connect("news.db")
+    conn = sqlite3.connect("E:\\Diplom\\data\\news.db", timeout=5.0)
     cursor = conn.cursor()
     cursor.execute(''' 
         CREATE TABLE IF NOT EXISTS news (
@@ -25,7 +25,7 @@ def create_db():
 
 def save_news(source, title, link, pub_date, description, image_url):
     """Сохраняет новость в базу данных, если её там ещё нет."""
-    conn = sqlite3.connect("news.db")
+    conn = sqlite3.connect("E:\\Diplom\\data\\news.db", timeout=10.0)
     cursor = conn.cursor()
 
     # Проверяем, существует ли новость с таким же link
@@ -49,7 +49,7 @@ def save_news(source, title, link, pub_date, description, image_url):
 
 def remove_duplicates():
     """Удаляет дубликаты из базы данных, оставляя только последние по времени записи."""
-    conn = sqlite3.connect("news.db")
+    conn = sqlite3.connect("E:\\Diplom\\data\\news.db")
     cursor = conn.cursor()
     cursor.execute('''
         DELETE FROM news
@@ -64,7 +64,7 @@ def remove_duplicates():
 
 def get_all_news():
     """Извлекает все новости из базы данных."""
-    conn = sqlite3.connect("news.db")
+    conn = sqlite3.connect("E:\\Diplom\\data\\news.db")
     cursor = conn.cursor()
     cursor.execute("SELECT source, title, link, pub_date, description, image_url FROM news")
     news = cursor.fetchall()

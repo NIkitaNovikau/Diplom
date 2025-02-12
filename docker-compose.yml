@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  app:
+    build: ./apps  # Собираем контейнер из Dockerfile в папке apps
+    container_name: python_app
+    depends_on:
+      - sqlite_db  # Сначала запустится база данных
+    volumes:
+      - ./data:/usr/src/apps/data  # Связываем папку с базой данных
+    restart: always
+
+  sqlite_db:
+    image: nouchka/sqlite3  # Готовый контейнер с SQLite3
+    container_name: sqlite_container
+    volumes:
+      - ./data:/root/db  # SQLite хранит файлы базы данных в этой папке
+    restart: always
+
+volumes:
+  data:
