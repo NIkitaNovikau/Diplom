@@ -2,7 +2,9 @@ import schedule
 import time
 from app import main
 
-def job():
+if __name__ == '__main__':
+    main()
+'''def job():
     main()
 
 if __name__ == '__main__':
@@ -12,4 +14,4 @@ if __name__ == '__main__':
     # Бесконечный цикл для выполнения запланированных задач
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(1)'''
