@@ -3,7 +3,7 @@ from mysql.connector import Error
 
 # Конфигурация подключения к MySQL
 DB_CONFIG = {
-    "host": "localhost",  #для докера нужен host.docker.internal
+    "host": "host.docker.internal",  #для докера нужен host.docker.internal
     "user": "root",
     "password": "1111",
     "database": "news",  # Имя базы данных
@@ -13,7 +13,7 @@ DB_CONFIG = {
 def create_db():
     """Создаёт базу данных и таблицу для хранения новостей, если их нет."""
     try:
-        # Подключаемся без указания базы
+
         conn = mysql.connector.connect(
             host=DB_CONFIG["host"],
             user=DB_CONFIG["user"],
@@ -96,30 +96,6 @@ def save_news(source_name, title, link, pub_date, description, image_url):
         if conn.is_connected():
             cursor.close()
             conn.close()
-
-def remove_duplicates():
-    """Удаляет дубликаты из базы данных, оставляя только последние по времени записи."""
-    try:
-        conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-
-        cursor.execute(''' 
-            DELETE n1 FROM news n1
-            INNER JOIN news n2 
-            ON n1.link = n2.link AND n1.id < n2.id
-        ''')
-
-        conn.commit()
-        print("Дубликаты удалены.")
-
-    except Error as e:
-        print(f"Ошибка при удалении дубликатов: {e}")
-
-    finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
 
 def get_all_news():
     """Извлекает все новости из базы данных."""

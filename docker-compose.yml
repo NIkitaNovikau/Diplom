@@ -1,15 +1,18 @@
-services:  # Определение сервисов, которые будут запускаться в Docker
-  mysql:  # Имя сервиса для базы данных MySQL
-    image: mysql:8  # Используем образ MySQL версии 8
-    container_name: mysql_db  # Назначаем контейнеру имя "mysql_db"
-    environment:  # Определяем переменные окружения для контейнера
-      MYSQL_ROOT_PASSWORD: root  # Устанавливаем пароль для root-пользователя MySQL
-      MYSQL_PASSWORD: 1111  # Устанавливаем пароль для другого пользователя (но без указания MYSQL_USER он не создастся)
-    ports:
-      - "80:3306"  # Пробрасываем порт 80 с контейнера (внутри Docker) на хост-машину (ваш компьютер)
 
-  app:  # Определение второго сервиса — приложения на Python
-    build: ./apps  # Говорим Docker, что образ для этого сервиса нужно собирать из каталога "apps"
-    container_name: python_parser  # Назначаем контейнеру имя "python_parser"
-    depends_on:  # Указываем, что сервис "app" зависит от сервиса "mysql"
-      - mysql  # Это означает, что контейнер с MySQL должен запуститься перед приложением
+services:
+  mysql:  
+    image: mysql:8  
+    container_name: mysql_db  
+    environment:  
+      MYSQL_ROOT_PASSWORD: root  
+      MYSQL_PASSWORD: 1111
+    ports:
+      - "80:3306"  # Пробрасываем порт корректно
+
+  app:  
+    build: .
+    container_name: python_parser  
+    depends_on:  
+      - mysql
+    environment:
+      PYTHONPATH: /usr/src  # Добавляем переменную окружения
