@@ -3,7 +3,7 @@ from mysql.connector import Error
 
 # Конфигурация подключения к MySQL
 DB_CONFIG = {
-    "host": "host.docker.internal",  #для докера нужен host.docker.internal
+    "host": "localhost",  #для докера нужен host.docker.internal
     "user": "root",
     "password": "1111",
     "database": "news",  # Имя базы данных

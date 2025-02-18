@@ -1,8 +1,21 @@
 import requests
 import xml.etree.ElementTree as ET
 import re
+import asyncio
 from datetime import datetime
 from data.database import create_db, save_news
+from telethon import TelegramClient
+from data.database_tg import create_database_tg, create_table_tg, post_exists_tg, save_to_db_tg
+
+# Данные для подключения к Telegram
+api_id = '25824542'
+api_hash = '091a50633c4eaf345dc2079a79ec05b5'
+
+# Источники (username → название)
+sources = {
+    "nevolf": "Невольфович",
+    "pul_1": "Пул Первого"
+}
 
 # Словарь RSS-источников
 rss_sources = {
@@ -10,6 +23,8 @@ rss_sources = {
     'Спутник': 'https://rss.app/feeds/Q835OAfeWYwXWnpY.xml'
 }
 
+# Создаём клиента Telethon
+client = TelegramClient('session_name', api_id, api_hash)
 """Загружает RSS-ленту и возвращает её содержимое."""
 def fetch_rss(url):
     try:
@@ -33,6 +48,10 @@ def parse_items(xml_content):
         except ET.ParseError as e:
             print(f"Ошибка парсинга XML: {e}")
     return []
+
+# Функция очистки текста
+def clean_text_tg(text):
+    return re.sub(r'\[.*?\]\(.*?\)', '', text).strip()
 
 """Удаляет HTML-теги из текста."""
 def clean_html(raw_html):
@@ -109,7 +128,47 @@ def fetch_all_rss():
         news_list = [extract_news(item) for item in items] # extract_news(item) — извлекает данные (заголовок, ссылку, дату, описание, изображение).
         print_news(news_list, source_name) # print_news выводит новости в консоль.
 
+# Асинхронная функция для парсинга сообщений из нескольких каналов
+async def fetch_all_messages():
+    await client.start()
+
+    for channel_username, source_name in sources.items():
+        try:
+            channel = await client.get_entity(f"t.me/{channel_username}")
+        except Exception as e:
+            print(f"Ошибка получения канала {channel_username}: {e}")
+            continue
+
+        messages = await client.get_messages(channel, limit=10)
+
+        if not messages:
+            print(f"Нет сообщений на канале {channel_username}.")
+            continue
+
+        for message in messages:
+            post_time = message.date.strftime('%Y-%m-%d %H:%M:%S')
+            cleaned_text = clean_text_tg(message.text or "")
+            post_link = f"https://t.me/{channel_username}/{message.id}"  # Ссылка на пост
+            photo_data = None
+
+            # Проверяем, существует ли уже запись с таким временем
+            if post_exists_tg(post_time, cleaned_text, post_link):
+                print(f"Пропущено: ID {message.id} | {post_link}")
+                continue
+
+            if message.media and hasattr(message.media, 'photo'):
+                photo_data = await client.download_media(message.media.photo, file=bytes)  # Получаем фото как байты
+
+            record_id = save_to_db_tg(post_time, cleaned_text, post_link, source_name, photo_data)  # Получаем ID
+
+            print(f"Сохранено: ID {record_id} | Источник: {source_name} | Время: {post_time} | Ссылка: {post_link} | Фото: {'Есть' if photo_data else 'Нет'}")
+
+    await client.disconnect()
+
 def main():
     create_db()
+    create_database_tg()
+    create_table_tg()
     fetch_all_rss()
+    #asyncio.run(fetch_all_messages())
 
