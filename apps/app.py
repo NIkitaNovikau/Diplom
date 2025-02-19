@@ -19,7 +19,8 @@ sources = {
 
 # Словарь RSS-источников
 rss_sources = {
-    'БелТА': 'https://pogoda.by/rss/news?category=news'
+    'Onliner': 'https://morss.it/:proxy/https://people.onliner.by/',
+    'Спутник': 'https://morss.it/:proxy/https://sputnik.by/politics/'
 }
 
 # Создаём клиента Telethon
@@ -60,18 +61,12 @@ def clean_html(raw_html):
     return re.sub(r'<.*?>', '', raw_html).strip()
 
 """Конвертирует дату из RSS-формата в MySQL-формат."""
-"""Конвертирует дату из RSS-формата в MySQL-формат."""
 def convert_date(pub_date):
-    ''' Было - "Mon, 05 Feb 2024 14:30:00 GMT"
-        Стало - "2024-02-05 14:30:00"
-    Функция datetime.strptime() принимает строку (pub_date)
-    и шаблон ("%a, %d %b %Y %H:%M:%S GMT") После выполнения datetime.strptime()
-    получается объект datetime datetime.datetime(2024, 2, 5, 14, 30, 0)
-    Функция strftime() форматирует дату в строку '''
     formats = [
         "%a, %d %b %Y %H:%M:%S GMT",  # "Mon, 05 Feb 2024 14:30:00 GMT"
         "%a %b %d %Y %H:%M:%S GMT%z (%Z)",  # "Sat Jun 29 2024 00:00:00 GMT+0000 (Coordinated Universal Time)"
-        "%a %b %d %Y %H:%M:%S GMT%z"  # Новый вариант без (Coordinated Universal Time)
+        "%a %b %d %Y %H:%M:%S GMT%z",  # "Sat Jun 29 2024 00:00:00 GMT+0000"
+        "%a, %d %b %Y %H:%M:%S %z"  # Новый формат → "Wed, 19 Feb 2025 10:30:44 +0300"
     ]
 
     for fmt in formats:
