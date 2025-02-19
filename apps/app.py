@@ -19,8 +19,7 @@ sources = {
 
 # Словарь RSS-источников
 rss_sources = {
-    'БелТА': 'https://rss.app/feeds/XCdZXrlPIVc9IfT5.xml',
-    'Спутник': 'https://rss.app/feeds/Q835OAfeWYwXWnpY.xml'
+    'БелТА': 'https://pogoda.by/rss/news?category=news'
 }
 
 # Создаём клиента Telethon
@@ -61,6 +60,7 @@ def clean_html(raw_html):
     return re.sub(r'<.*?>', '', raw_html).strip()
 
 """Конвертирует дату из RSS-формата в MySQL-формат."""
+"""Конвертирует дату из RSS-формата в MySQL-формат."""
 def convert_date(pub_date):
     ''' Было - "Mon, 05 Feb 2024 14:30:00 GMT"
         Стало - "2024-02-05 14:30:00"
@@ -68,11 +68,28 @@ def convert_date(pub_date):
     и шаблон ("%a, %d %b %Y %H:%M:%S GMT") После выполнения datetime.strptime()
     получается объект datetime datetime.datetime(2024, 2, 5, 14, 30, 0)
     Функция strftime() форматирует дату в строку '''
-    try:
-        return datetime.strptime(pub_date, "%a, %d %b %Y %H:%M:%S GMT").strftime("%Y-%m-%d %H:%M:%S")
-    except ValueError:
-        print(f"Ошибка преобразования даты: {pub_date}")
-        return None  # Если не удалось преобразовать, возвращаем None
+    formats = [
+        "%a, %d %b %Y %H:%M:%S GMT",  # "Mon, 05 Feb 2024 14:30:00 GMT"
+        "%a %b %d %Y %H:%M:%S GMT%z (%Z)",  # "Sat Jun 29 2024 00:00:00 GMT+0000 (Coordinated Universal Time)"
+        "%a %b %d %Y %H:%M:%S GMT%z"  # Новый вариант без (Coordinated Universal Time)
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(pub_date, fmt).strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            continue
+
+    # Попробуем удалить текст в скобках и распарсить снова
+    cleaned_date = re.sub(r"\s*\(.*?\)", "", pub_date).strip()
+    for fmt in formats:
+        try:
+            return datetime.strptime(cleaned_date, fmt).strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            continue
+
+    print(f"Ошибка преобразования даты: {pub_date}")
+    return None
 
 """Извлекает заголовок, ссылку, дату, описание и изображение из новости."""
 def extract_news(item):
@@ -170,5 +187,5 @@ def main():
     create_database_tg()
     create_table_tg()
     fetch_all_rss()
-    #asyncio.run(fetch_all_messages())
+    asyncio.run(fetch_all_messages())
 
