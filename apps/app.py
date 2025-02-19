@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import re
 import asyncio
 from datetime import datetime
-from data.database import create_db, save_news
+from data.database import create_database_rss, create_table_rss, save_news_rss
 from telethon import TelegramClient
 from data.database_tg import create_database_tg, create_table_tg, post_exists_tg, save_to_db_tg
 
@@ -128,7 +128,7 @@ def print_news(news_list, source_name):
 
         # Проверяем, есть ли дата перед сохранением
         if news["pub_date"]:
-            save_news(source_name, news["title"], news["link"], news["pub_date"], news["description"], news["image_url"])
+            save_news_rss(source_name, news["title"], news["link"], news["pub_date"], news["description"], news["image_url"])
         else:
             print(f"Пропущена новость '{news['title']}', так как у неё некорректная дата.")
 
@@ -141,7 +141,7 @@ def fetch_all_rss():
         print_news(news_list, source_name) # print_news выводит новости в консоль.
 
 # Асинхронная функция для парсинга сообщений из нескольких каналов
-async def fetch_all_messages():
+async def fetch_all_tg():
     await client.start()
 
     for channel_username, source_name in sources.items():
@@ -178,9 +178,10 @@ async def fetch_all_messages():
     await client.disconnect()
 
 def main():
-    create_db()
+    create_database_rss()
+    create_table_rss()
     create_database_tg()
     create_table_tg()
     fetch_all_rss()
-    asyncio.run(fetch_all_messages())
+    asyncio.run(fetch_all_tg())
 

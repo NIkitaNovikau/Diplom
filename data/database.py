@@ -1,19 +1,10 @@
 import mysql.connector
 from mysql.connector import Error
+from data.config import DB_CONFIG
 
-# Конфигурация подключения к MySQL
-DB_CONFIG = {
-    "host": "localhost",  #для докера нужен host.docker.internal
-    "user": "root",
-    "password": "1111",
-    "database": "news",  # Имя базы данных
-    "port": "3306"
-}
-
-def create_db():
-    """Создаёт базу данных и таблицу для хранения новостей, если их нет."""
+def create_database_rss():
+    """Создаёт базу данных, если её нет."""
     try:
-
         conn = mysql.connector.connect(
             host=DB_CONFIG["host"],
             user=DB_CONFIG["user"],
@@ -21,19 +12,22 @@ def create_db():
             port=DB_CONFIG["port"]
         )
         cursor = conn.cursor()
-
-        # Создаём базу данных, если её нет
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_CONFIG['database']}")
         print(f"База данных '{DB_CONFIG['database']}' проверена/создана.")
+    except Error as e:
+        print(f"Ошибка при создании базы данных: {e}")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
 
-        cursor.close()
-        conn.close()
 
-        # Теперь подключаемся с базой
+def create_table_rss():
+    """Создаёт таблицу news, если её нет."""
+    try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
-        # Создаём таблицу, если её нет
         cursor.execute(''' 
             CREATE TABLE IF NOT EXISTS news (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -48,10 +42,7 @@ def create_db():
 
         # Проверяем, существует ли индекс
         cursor.execute("SHOW INDEX FROM news WHERE Key_name = 'idx_news_link'")
-        index_exists = cursor.fetchone()
-
-        # Если индекс не существует, создаём его
-        if not index_exists:
+        if not cursor.fetchone():
             cursor.execute('CREATE INDEX idx_news_link ON news (link)')
             print("Индекс idx_news_link создан.")
         else:
@@ -59,16 +50,15 @@ def create_db():
 
         conn.commit()
         print("Таблица news проверена/создана.")
-
     except Error as e:
-        print(f"Ошибка при создании базы данных или таблицы: {e}")
+        print(f"Ошибка при создании таблицы: {e}")
     finally:
         if conn.is_connected():
             cursor.close()
             conn.close()
 
 
-def save_news(source_name, title, link, pub_date, description, image_url):
+def save_news_rss(source_name, title, link, pub_date, description, image_url):
     """Сохраняет новость в базе данных, избегая дубликатов."""
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
@@ -97,8 +87,8 @@ def save_news(source_name, title, link, pub_date, description, image_url):
             cursor.close()
             conn.close()
 
-def get_all_news():
-    """Извлекает все новости из базы данных."""
+"""def get_all_news_rss():
+    #Извлекает все новости из базы данных
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
@@ -117,3 +107,4 @@ def get_all_news():
             cursor.close()
             conn.close()
 
+"""

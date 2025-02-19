@@ -1,13 +1,7 @@
 import mysql.connector
 import re
+from data.config import db_config
 
-db_config = {
-    "host": "localhost",  # Для докера: "host.docker.internal"
-    "user": "root",
-    "password": "1111",
-    "database": "tgnews",  # Имя базы данных
-    "port": "3306"
-}
 # Функция очистки текста
 def clean_text_tg(text):
     return re.sub(r'\[.*?\]\(.*?\)', '', text).strip()
