@@ -1,11 +1,11 @@
-import mysql.connector
-from mysql.connector import Error
-from data.config import DB_CONFIG
+import pymysql
+from pymysql.err import MySQLError
+from data.config_db import DB_CONFIG
 
 def create_database_rss():
     """Создаёт базу данных, если её нет."""
     try:
-        conn = mysql.connector.connect(
+        conn = pymysql.connect(
             host=DB_CONFIG["host"],
             user=DB_CONFIG["user"],
             password=DB_CONFIG["password"],
@@ -14,21 +14,19 @@ def create_database_rss():
         cursor = conn.cursor()
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_CONFIG['database']}")
         print(f"База данных '{DB_CONFIG['database']}' проверена/создана.")
-    except Error as e:
+    except MySQLError as e:
         print(f"Ошибка при создании базы данных: {e}")
     finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
+        cursor.close()
+        conn.close()
 
 def create_table_rss():
     """Создаёт таблицу news, если её нет."""
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = pymysql.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
-        cursor.execute(''' 
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS news (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 source VARCHAR(255),
@@ -50,18 +48,16 @@ def create_table_rss():
 
         conn.commit()
         print("Таблица news проверена/создана.")
-    except Error as e:
+    except MySQLError as e:
         print(f"Ошибка при создании таблицы: {e}")
     finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
+        cursor.close()
+        conn.close()
 
 def save_news_rss(source_name, title, link, pub_date, description, image_url):
     """Сохраняет новость в базе данных, избегая дубликатов."""
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = pymysql.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
         # Проверяем, есть ли уже запись с таким же link
@@ -79,32 +75,22 @@ def save_news_rss(source_name, title, link, pub_date, description, image_url):
             conn.commit()
             print(f"Новость '{title}' сохранена в базе данных.")
 
-    except Error as e:
+    except MySQLError as e:
         print(f"Ошибка при сохранении новости: {e}")
-
     finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
+        cursor.close()
+        conn.close()
 
-"""def get_all_news_rss():
-    #Извлекает все новости из базы данных
+def get_all_news_rss():
+    """Получает данные из MySQL"""
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = pymysql.connect(**DB_CONFIG)
         cursor = conn.cursor()
-
-        cursor.execute("SELECT source, title, link, pub_date, description, image_url FROM news")
-        news = cursor.fetchall()
-
-        return news
-
-    except Error as e:
-        print(f"Ошибка при получении данных: {e}")
+        cursor.execute("SELECT source, title, link, pub_date FROM news ORDER BY pub_date DESC")
+        data = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return data
+    except pymysql.MySQLError as e:
+        print("Ошибка при работе с базой данных:", e)
         return []
-
-    finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
-"""

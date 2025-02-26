@@ -4,7 +4,7 @@ db_config = {
     "user": "root",
     "password": "1111",
     "database": "tgnews",  # Имя базы данных
-    "port": "3306"
+    "port": 3306
 }
 # Конфигурация подключения к MySQL_rss
 DB_CONFIG = {
@@ -12,5 +12,5 @@ DB_CONFIG = {
     "user": "root",
     "password": "1111",
     "database": "news",  # Имя базы данных
-    "port": "3306"
+    "port": 3306
 }
