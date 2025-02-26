@@ -127,3 +127,16 @@ def save_to_db_tg(post_time, text, post_link, source, photo_data=None):
             cursor.close()
         if conn:
             conn.close()
+def get_all_news_tg():
+    """Получает данные из MySQL"""
+    try:
+        conn = pymysql.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute("SELECT source, text, post_link, post_time FROM telegram_posts ORDER BY post_time DESC")
+        data = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return data
+    except pymysql.MySQLError as e:
+        print("Ошибка при работе с базой данных:", e)
+        return []
