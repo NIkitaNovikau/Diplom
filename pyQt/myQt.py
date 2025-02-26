@@ -1,103 +1,72 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, \
-    QTableWidgetItem, QTextEdit
+    QTableWidgetItem, QTextEdit, QStackedWidget, QSizePolicy
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIcon, QColor, QPalette, QPixmap, QBrush
+from PyQt6.QtGui import QIcon, QPixmap, QBrush, QPalette
 from data.database import get_all_news_rss
 from data.database_tg import get_all_news_tg
 
 
-class NewsApp(QWidget):
-    def __init__(self):
-        super().__init__()
+class Page1(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-        # Устанавливаем заголовок окна
-        self.setWindowTitle("Новости из MySQL")
-        # Устанавливаем начальный размер окна
-        self.setGeometry(100, 100, 1000, 700)  # Увеличиваем размер окна
-        # Устанавливаем минимальный размер окна для того, чтобы оно могло быть растянуто
-        self.setMinimumSize(800, 600)
-        # Устанавливаем иконку для окна
-        self.setWindowIcon(QIcon("icon.png"))
+        self.parent = parent  # Сохраняем ссылку на родительский объект
+        self.setUpUI()
 
-        # Основной вертикальный layout для размещения всех элементов
+    def setUpUI(self):
         layout = QVBoxLayout()
 
-        # Создаем горизонтальный layout для кнопок
-        button_layout = QHBoxLayout()
+        # Статичный layout с кнопками для переключения страниц
+        button_layout_db = QHBoxLayout()
 
-        # Кнопка для загрузки новостей с RSS
-        self.loadRssButton = QPushButton("Прочесть новости с RSS ленты")
-        # Подключаем обработчик нажатия кнопки
+        self.loadRssButton = QPushButton("Прочесть новости с RSS\nленты")
         self.loadRssButton.clicked.connect(self.load_rss_data)
-        # Добавляем кнопку в layout
-        button_layout.addWidget(self.loadRssButton)
+        self.loadRssButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button_layout_db.addWidget(self.loadRssButton)
 
-        # Кнопка для загрузки новостей с TG каналов
-        self.loadTgButton = QPushButton("Прочесть новости с TG каналов")
+        self.loadTgButton = QPushButton("Прочесть новости с TG\nканалов")
         self.loadTgButton.clicked.connect(self.load_tg_data)
-        button_layout.addWidget(self.loadTgButton)
+        self.loadTgButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button_layout_db.addWidget(self.loadTgButton)
 
-        # Кнопка для загрузки всех новостей
-        self.loadAllButton = QPushButton("Загрузить все новости")
+        self.loadAllButton = QPushButton("Загрузить все\nновости")
         self.loadAllButton.clicked.connect(self.load_all_data)
-        button_layout.addWidget(self.loadAllButton)
+        self.loadAllButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button_layout_db.addWidget(self.loadAllButton)
 
-        # Добавляем layout с кнопками в основной вертикальный layout
-        layout.addLayout(button_layout)
+        # Добавляем кнопки работы с БД в основное содержимое
+        layout.addLayout(button_layout_db)
 
-        # Создаем таблицу для отображения новостей
+        # Создаем таблицу для новостей
         self.newsTable = QTableWidget()
-        # Настроим поведение таблицы: при выборе строки выделяется вся строка
-        self.newsTable.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        # Включаем сортировку по столбцам
-        self.newsTable.setSortingEnabled(True)
+        self.newsTable.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)  # Выделение целых строк
+        self.newsTable.setSortingEnabled(True)  # Включаем сортировку по столбцам
         layout.addWidget(self.newsTable)
 
-        # Создаем текстовое поле для отображения подробной информации о новости
+        # Создаем текстовое поле для деталей новости
         self.detailText = QTextEdit()
-        # Делаем текстовое поле доступным только для чтения
-        self.detailText.setReadOnly(True)
         layout.addWidget(self.detailText)
 
-        # Устанавливаем основной layout для окна
         self.setLayout(layout)
 
         # Подключаем обработчик события выбора строки в таблице
         self.newsTable.itemSelectionChanged.connect(self.show_news_detail)
 
-        """
-        Устанавливает фоновое изображение для окна приложения.
-        Используется QPalette и QBrush для установки изображения в качестве фона.
-        """
-    def set_background_image(self, image_path):
-        palette = self.palette()
-        pixmap = QPixmap(image_path)
-        # Масштабируем изображение, чтобы оно подходило под размер окна
-        pixmap = pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
-        # Создаем QBrush с изображением
-        brush = QBrush(pixmap)
-        # Устанавливаем QBrush как фон для окна
-        palette.setBrush(QPalette.ColorRole.Window, brush)
-        self.setPalette(palette)
-
-        """Загружает новости из MySQL RSS и обновляет таблицу"""
     def load_rss_data(self):
         print("[DEBUG] Подключение к MySQL для RSS...")
         # Получаем новости из RSS
         data = get_all_news_rss()
         # Обновляем таблицу данными из RSS
-        self.update_table(data, "RSS")
+        self.parent.update_table(data, "RSS")
 
-        """Загружает новости из MySQL TG и обновляет таблицу"""
     def load_tg_data(self):
         print("[DEBUG] Подключение к MySQL для TG...")
         # Получаем новости из TG
         data = get_all_news_tg()
         # Обновляем таблицу данными из TG
-        self.update_table(data, "TG")
+        self.parent.update_table(data, "TG")
 
-        """Загружает все новости из MySQL (RSS + TG) и обновляет таблицу"""
     def load_all_data(self):
         print("[DEBUG] Подключение к MySQL для всех новостей...")
         # Получаем данные из RSS и TG
@@ -106,52 +75,9 @@ class NewsApp(QWidget):
         # Объединяем данные из обоих источников
         combined_data = rss_data + tg_data
         # Обновляем таблицу с комбинированными данными
-        self.update_table(combined_data, "Все новости")
+        self.parent.update_table(combined_data, "Все новости")
 
-        """
-        Обновляет таблицу с новостями.
-        Устанавливает количество строк, столбцов и заполняет таблицу данными.
-        """
-    def update_table(self, data, source):
-        if not data:
-            print(f"[DEBUG] Данных нет для {source}, таблица остается пустой")
-            return
-
-        # Устанавливаем количество строк в таблице в зависимости от данных
-        self.newsTable.setRowCount(len(data))
-
-        # Устанавливаем количество столбцов и их заголовки
-        self.newsTable.setColumnCount(4)
-        self.newsTable.setHorizontalHeaderLabels(["Источник", "Заголовок", "Ссылка", "Дата"])
-
-        # Устанавливаем ширину столбцов для удобства чтения
-        self.newsTable.setColumnWidth(0, 150)  # Источник
-        self.newsTable.setColumnWidth(1, 350)  # Заголовок
-        self.newsTable.setColumnWidth(2, 300)  # Ссылка
-        self.newsTable.setColumnWidth(3, 150)  # Дата
-
-        # Используем QTimer для того, чтобы добавить строки с небольшими задержками
-        for row, news in enumerate(data):
-            # Используем QTimer для добавления строк поочередно
-            QTimer.singleShot(row * 10, lambda r=row, n=news: self.add_row(r, n))
-
-        print(f"[DEBUG] Загружено {len(data)} записей из {source}")
-
-        """
-        Добавляет строку с новостью в таблицу.
-        Каждый элемент новости добавляется в соответствующий столбец.
-        """
-    def add_row(self, row, news):
-        for col, value in enumerate(news):
-            item = QTableWidgetItem(str(value))
-            # Устанавливаем флаги, чтобы элемент был доступен для выделения и редактирования
-            item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-            self.newsTable.setItem(row, col, item)
-
-        """
-        Отображает подробную информацию о выбранной новости.
-        Когда пользователь выбирает строку в таблице, отображается информация в текстовом поле.
-        """
+    # Отображает подробную информацию о выбранной новости
     def show_news_detail(self):
         selected_rows = set(index.row() for index in self.newsTable.selectedIndexes())  # Получаем выбранные строки
         if not selected_rows:
@@ -172,12 +98,105 @@ class NewsApp(QWidget):
         self.detailText.setText(detail_text)
 
 
+class Page2(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setUpUI()
+
+    def setUpUI(self):
+        layout = QVBoxLayout()
+
+        # Добавляем другие элементы на страницу 2
+        label = QTextEdit("пока в разработке")
+        layout.addWidget(label)
+
+        self.setLayout(layout)
+
+
+class NewsApp(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Устанавливаем заголовок окна
+        self.setWindowTitle("Новости из MySQL")
+        self.setGeometry(100, 100, 1000, 700)
+        self.setMinimumSize(800, 600)
+        self.setWindowIcon(QIcon("icon.png"))
+
+        # Основной вертикальный layout для размещения всех элементов
+        main_layout = QVBoxLayout()
+
+        # Стек для страниц
+        self.stacked_widget = QStackedWidget()
+
+        # Создаем страницы
+        self.page1 = Page1(self)  # Передаем родительский объект
+        self.page2 = Page2(self)
+
+        # Добавляем страницы в stacked widget
+        self.stacked_widget.addWidget(self.page1)
+        self.stacked_widget.addWidget(self.page2)
+
+        # Статичный layout с кнопками для переключения
+        button_layout = QHBoxLayout()
+
+        # Кнопка для перехода на страницу 1
+        self.page1_to_page2_button = QPushButton("Список ресурсов")
+        self.page1_to_page2_button.clicked.connect(self.go_to_page2)
+        self.page1_to_page2_button.setFixedSize(150, 30)
+        button_layout.addWidget(self.page1_to_page2_button)
+
+        # Кнопка для перехода на страницу 2
+        self.page2_to_page1_button = QPushButton("База Данных")
+        self.page2_to_page1_button.clicked.connect(self.go_to_page1)
+        self.page2_to_page1_button.setFixedSize(150, 30)
+        button_layout.addWidget(self.page2_to_page1_button)
+
+        button_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        main_layout.addLayout(button_layout)
+
+        # Добавляем стек страниц в главный layout
+        main_layout.addWidget(self.stacked_widget)
+
+        # Устанавливаем основной layout для окна
+        self.setLayout(main_layout)
+
+    def go_to_page1(self):
+        self.stacked_widget.setCurrentWidget(self.page1)
+
+    def go_to_page2(self):
+        self.stacked_widget.setCurrentWidget(self.page2)
+
+    def update_table(self, data, source):
+        self.page1.newsTable.setRowCount(len(data))
+        self.page1.newsTable.setColumnCount(4)
+        self.page1.newsTable.setHorizontalHeaderLabels(["Источник", "Заголовок", "Ссылка", "Дата"])
+        self.page1.newsTable.setColumnWidth(0, 150)
+        self.page1.newsTable.setColumnWidth(1, 350)
+        self.page1.newsTable.setColumnWidth(2, 300)
+        self.page1.newsTable.setColumnWidth(3, 150)
+
+        for row, news in enumerate(data):
+            QTimer.singleShot(row * 10, lambda r=row, n=news: self.add_row(r, n))
+
+    def add_row(self, row, news):
+        for col, value in enumerate(news):
+            item = QTableWidgetItem(str(value))
+            item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+            self.page1.newsTable.setItem(row, col, item)
+
+    def set_background_image(self, image_path):
+        palette = self.palette()
+        pixmap = QPixmap(image_path)
+        pixmap = pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
+        brush = QBrush(pixmap)
+        palette.setBrush(QPalette.ColorRole.Window, brush)
+        self.setPalette(palette)
+
+
+# Запуск приложения
 if __name__ == "__main__":
-    # Создаем приложение
     app = QApplication(sys.argv)
-    # Создаем окно приложения
     window = NewsApp()
-    # Отображаем окно
     window.show()
-    # Запускаем главный цикл приложения
     sys.exit(app.exec())

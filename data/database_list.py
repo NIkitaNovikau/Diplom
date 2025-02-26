@@ -58,24 +58,26 @@ def add_tg_source(channel_username, source_name):
     finally:
         connection.close()
 
-# Функция для удаления RSS источников по ID
+# Функция для удаления RSS источников по ID с сбросом AUTO_INCREMENT
 def remove_rss_source(source_name):
     try:
         connection = pymysql.connect(**DB_CONFIG)
         with connection.cursor() as cursor:
             cursor.execute("DELETE FROM rss_sources WHERE source_name = %s", (source_name,))
+            cursor.execute("ALTER TABLE rss_sources AUTO_INCREMENT = 1")  # Сбрасываем AUTO_INCREMENT
         connection.commit()
     except MySQLError as e:
         print(f"Ошибка при удалении RSS источника: {e}")
     finally:
         connection.close()
 
-# Функция для удаления Telegram источников по ID
+# Функция для удаления Telegram источников по ID с сбросом AUTO_INCREMENT
 def remove_tg_source(source_name):
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
             cursor.execute("DELETE FROM tg_sources WHERE source_name = %s", (source_name,))
+            cursor.execute("ALTER TABLE tg_sources AUTO_INCREMENT = 1")  # Сбрасываем AUTO_INCREMENT
         connection.commit()
     except MySQLError as e:
         print(f"Ошибка при удалении Telegram источника: {e}")
