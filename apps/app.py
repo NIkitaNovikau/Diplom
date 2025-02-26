@@ -152,8 +152,8 @@ def add_rss_source_input():
 
 
 def add_tg_source_input():
-    channel_username = input("Введите username канала Telegram: ")
-    source_name = input("Введите название источника: ")
+    channel_username = input("Введите название канала Telegram: ")
+    source_name = input("Введите username источника: ")
     add_tg_source(channel_username, source_name)
     print(f"Telegram источник '{source_name}' добавлен в базу данных.")
 

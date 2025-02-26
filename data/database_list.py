@@ -25,8 +25,8 @@ def create_table_list_tg():
         with connection.cursor() as cursor:
             cursor.execute('''CREATE TABLE IF NOT EXISTS tg_sources (
                                 id INT AUTO_INCREMENT PRIMARY KEY,
-                                channel_username VARCHAR(255) NOT NULL,
-                                source_name VARCHAR(255) NOT NULL
+                                source_name VARCHAR(255) NOT NULL,
+                                channel_username VARCHAR(255) NOT NULL
                             )''')
         connection.commit()
     except MySQLError as e:
@@ -47,11 +47,11 @@ def add_rss_source(source_name, rss_url):
         connection.close()
 
 # Функция для добавления Telegram источников
-def add_tg_source(channel_username, source_name):
+def add_tg_source(source_name, channel_username):
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
-            cursor.execute("INSERT INTO tg_sources (channel_username, source_name) VALUES (%s, %s)", (channel_username, source_name))
+            cursor.execute("INSERT INTO tg_sources (source_name, channel_username) VALUES (%s, %s)", (source_name, channel_username))
         connection.commit()
     except MySQLError as e:
         print(f"Ошибка при добавлении Telegram источника: {e}")
@@ -102,7 +102,7 @@ def get_tg_sources():
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
-            cursor.execute("SELECT channel_username, source_name FROM tg_sources")
+            cursor.execute("SELECT source_name, channel_username FROM tg_sources")
             return cursor.fetchall()
     except MySQLError as e:
         print(f"Ошибка при получении Telegram источников: {e}")

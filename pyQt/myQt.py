@@ -1,11 +1,11 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, \
-    QTableWidgetItem, QTextEdit, QStackedWidget, QSizePolicy
+    QTableWidgetItem, QTextEdit, QStackedWidget, QSizePolicy, QLineEdit
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon, QPixmap, QBrush, QPalette
 from data.database import get_all_news_rss
 from data.database_tg import get_all_news_tg
-
+from data.database_list import get_rss_sources, get_tg_sources, add_tg_source, add_rss_source, remove_rss_source, remove_tg_source
 
 class Page1(QWidget):
     def __init__(self, parent=None):
@@ -101,17 +101,149 @@ class Page1(QWidget):
 class Page2(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.parent = parent  # Сохраняем ссылку на родительский объект
         self.setUpUI()
 
     def setUpUI(self):
         layout = QVBoxLayout()
 
-        # Добавляем другие элементы на страницу 2
-        label = QTextEdit("пока в разработке")
-        layout.addWidget(label)
+        # Статичный layout с кнопками для переключения страниц
+        button_layout_db = QHBoxLayout()
+
+        self.loadRssButton = QPushButton("Список RSS ресурсов\n")
+        self.loadRssButton.clicked.connect(self.load_rss_data)
+        self.loadRssButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button_layout_db.addWidget(self.loadRssButton)
+
+        self.loadTgButton = QPushButton("Список TG ресурсов\n")
+        self.loadTgButton.clicked.connect(self.load_tg_data)
+        self.loadTgButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button_layout_db.addWidget(self.loadTgButton)
+
+        self.loadAllButton = QPushButton("Загрузить все ресурсы\n")
+        self.loadAllButton.clicked.connect(self.load_all_data)
+        self.loadAllButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button_layout_db.addWidget(self.loadAllButton)
+
+        # Добавляем кнопки работы с БД в основное содержимое
+        layout.addLayout(button_layout_db)
+
+        # Создаем таблицу для новостей
+        self.newsTable = QTableWidget()
+        self.newsTable.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)  # Выделение целых строк
+        self.newsTable.setSortingEnabled(True)  # Включаем сортировку по столбцам
+        layout.addWidget(self.newsTable)
+
+        # Размещение кнопок удаления справа от таблицы
+        button_layout_delete = QHBoxLayout()
+
+        self.deleteRssButton = QPushButton("Удалить RSS источник")
+        self.deleteRssButton.clicked.connect(self.delete_source)
+        button_layout_delete.addWidget(self.deleteRssButton)
+
+        self.deleteTgButton = QPushButton("Удалить TG источник")
+        self.deleteTgButton.clicked.connect(self.delete_source)
+        button_layout_delete.addWidget(self.deleteTgButton)
+
+        layout.addLayout(button_layout_delete)
+
+        # Добавляем поля для ввода и кнопки для добавления источников
+        input_layout = QHBoxLayout()
+
+        # Поле для названия источника
+        self.sourceNameInput = QLineEdit()
+        self.sourceNameInput.setPlaceholderText("Введите название ресурса")
+        input_layout.addWidget(self.sourceNameInput)
+
+        # Поле для ввода URL для RSS или TG канала
+        self.urlInput = QLineEdit()
+        self.urlInput.setPlaceholderText("Введите URL для RSS или Telegram канал")
+        input_layout.addWidget(self.urlInput)
+
+        # Кнопка для добавления RSS ресурса
+        self.addRssButton = QPushButton("Добавить RSS источник")
+        self.addRssButton.clicked.connect(self.add_rss_source)
+        input_layout.addWidget(self.addRssButton)
+
+        # Кнопка для добавления TG канала
+        self.addTgButton = QPushButton("Добавить TG источник")
+        self.addTgButton.clicked.connect(self.add_tg_source)
+        input_layout.addWidget(self.addTgButton)
+
+        # Размещаем поля ввода и кнопки внизу
+        layout.addLayout(input_layout)
 
         self.setLayout(layout)
 
+    def load_rss_data(self):
+        print("[DEBUG] Подключение к MySQL для RSS...")
+        # Получаем новости из RSS
+        data = get_rss_sources()
+        # Обновляем таблицу данными из RSS
+        self.parent.update_table_list(data, "RSS")
+
+    def load_tg_data(self):
+        print("[DEBUG] Подключение к MySQL для TG...")
+        # Получаем новости из TG
+        data = get_tg_sources()
+        # Обновляем таблицу данными из TG
+        self.parent.update_table_list(data, "TG")
+
+    def load_all_data(self):
+        print("[DEBUG] Подключение к MySQL для всех новостей...")
+        # Получаем данные из RSS и TG
+        rss_data = get_rss_sources()
+        tg_data = get_tg_sources()
+        # Объединяем данные из обоих источников
+        combined_data = rss_data + tg_data
+        # Обновляем таблицу с комбинированными данными
+        self.parent.update_table_list(combined_data, "Все новости")
+
+    def delete_source(self):
+        # Получаем, какая кнопка была нажата (RSS или TG)
+        button = self.sender()
+
+        # Получаем выбранную строку
+        selected_row = self.newsTable.currentRow()
+        if selected_row >= 0:  # Если строка выбрана
+            source_name = self.newsTable.item(selected_row, 0).text()  # Получаем имя источника
+            url_or_channel = self.newsTable.item(selected_row, 1).text()  # Получаем URL или канал
+
+            # Если была нажата кнопка для удаления RSS источника
+            if button == self.deleteRssButton:
+                # Удаляем из базы данных RSS источник
+                remove_rss_source(source_name)
+                # Удаляем строку из таблицы
+                self.newsTable.removeRow(selected_row)
+
+            # Если была нажата кнопка для удаления TG источника
+            elif button == self.deleteTgButton:
+                # Удаляем из базы данных TG источник
+                remove_tg_source(source_name)
+                # Удаляем строку из таблицы
+                self.newsTable.removeRow(selected_row)
+
+    def add_rss_source(self):
+        # Получаем название источника и URL из полей ввода
+        source_name = self.sourceNameInput.text()
+        rss_url = self.urlInput.text()
+        if source_name and rss_url:
+            # Добавляем RSS источник в базу данных
+            add_rss_source(source_name, rss_url)
+            self.sourceNameInput.clear()  # Очищаем поле ввода названия
+            self.urlInput.clear()  # Очищаем поле ввода URL
+            self.load_rss_data()  # Перезагружаем список
+
+    def add_tg_source(self):
+        # Получаем название источника и канал из полей ввода
+        source_name = self.sourceNameInput.text()
+        tg_channel = self.urlInput.text()
+        if source_name and tg_channel:
+            # Добавляем TG источник в базу данных
+            add_tg_source(source_name, tg_channel)
+            self.sourceNameInput.clear()  # Очищаем поле ввода названия
+            self.urlInput.clear()  # Очищаем поле ввода канала
+            self.load_tg_data()  # Перезагружаем список
 
 class NewsApp(QWidget):
     def __init__(self):
@@ -167,6 +299,21 @@ class NewsApp(QWidget):
     def go_to_page2(self):
         self.stacked_widget.setCurrentWidget(self.page2)
 
+    def update_table_list(self, data_list, source):
+        self.page2.newsTable.setRowCount(len(data_list))
+        self.page2.newsTable.setColumnCount(2)
+        self.page2.newsTable.setHorizontalHeaderLabels(["Источник", "Ссылка"])
+        self.page2.newsTable.setColumnWidth(0, 150)
+        self.page2.newsTable.setColumnWidth(1, 350)
+
+        for row_list, new_list in enumerate(data_list):
+            QTimer.singleShot(row_list * 10, lambda r=row_list, n=new_list: self.add_row_list(r, n))
+
+    def add_row_list(self, row_list, new_list):
+        for col, value in enumerate(new_list):
+            item = QTableWidgetItem(str(value))
+            item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+            self.page2.newsTable.setItem(row_list, col, item)
     def update_table(self, data, source):
         self.page1.newsTable.setRowCount(len(data))
         self.page1.newsTable.setColumnCount(4)
