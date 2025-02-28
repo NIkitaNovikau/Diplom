@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, \
     QTableWidgetItem, QTextEdit, QStackedWidget, QSizePolicy, QLineEdit
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIcon, QPixmap, QBrush, QPalette
+from PyQt6.QtGui import QIcon, QBrush
 from data.database import get_all_news_rss, mark_news_as_viewed_rss
 from data.database_tg import get_all_news_tg, mark_news_as_viewed_tg
 from data.database_list import get_rss_sources, get_tg_sources, add_tg_source, add_rss_source, remove_rss_source, remove_tg_source
@@ -13,6 +13,16 @@ class Page1(QWidget):
 
         self.parent = parent  # Сохраняем ссылку на родительский объект
         self.setUpUI()
+        self.current_source = None  # Храним, какая кнопка была нажата последней
+
+        self.loadRssButton.clicked.connect(self.set_rss_source)
+        self.loadTgButton.clicked.connect(self.set_tg_source)
+
+    def set_rss_source(self):
+        self.current_source = "rss"
+
+    def set_tg_source(self):
+        self.current_source = "tg"
 
     def setUpUI(self):
         layout = QVBoxLayout()
@@ -87,8 +97,10 @@ class Page1(QWidget):
         news_id = self.newsTable.item(row, 0).text()  # ID новости
 
         # Помечаем новость как прочитанную в базе данных
-        mark_news_as_viewed_rss(news_id)
-        mark_news_as_viewed_tg(news_id)
+        if self.current_source == "rss":
+            mark_news_as_viewed_rss(news_id)
+        elif self.current_source == "tg":
+            mark_news_as_viewed_tg(news_id)
         # Меняем цвет строки на серый
         for col in range(self.newsTable.columnCount()):
             self.newsTable.item(row, col).setBackground(QBrush(Qt.GlobalColor.lightGray))
@@ -101,6 +113,7 @@ class Page1(QWidget):
 
         detail_text = f"Источник: {source}\nЗаголовок: {title}\nСсылка: {link}\nДата: {date}"
         self.detailText.setText(detail_text)
+
 
 
 class Page2(QWidget):

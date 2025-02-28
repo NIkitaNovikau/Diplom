@@ -155,7 +155,7 @@ def mark_news_as_viewed_tg(news_id):
 
         # Сохраняем изменения
         connection.commit()
-        print(f"Новость '{news_id}' успешно помечена как прочитанная.")
+        print(f"Новость '{news_id}' успешно помечена как прочитанная в TG.")
     except pymysql.MySQLError as e:
         print(f"Ошибка при пометке новости '{news_id}' как прочитанной: {e}")
     finally:
@@ -177,19 +177,19 @@ def add_viewed_column_tg():
         cursor = connection.cursor()
 
         # Проверяем, существует ли уже столбец "viewed"
-        cursor.execute("SHOW COLUMNS FROM telegram_posts LIKE 'viewed'")
+        cursor.execute("SHOW COLUMNS FROM telegram_posts LIKE 'tg'")
         result = cursor.fetchone()
 
         if not result:
             # Добавляем новый столбец "viewed" с типом INT (по умолчанию значение 0)
-            query = "ALTER TABLE telegram_posts ADD COLUMN viewed INT DEFAULT 0"
+            query = "ALTER TABLE telegram_posts ADD COLUMN tg TEXT DEFAULT tg"
             cursor.execute(query)
             print("Столбец 'viewed' успешно добавлен в таблицу tg_news.")
         else:
             print("Столбец 'viewed' уже существует в таблице tg_news.")
 
         # Заполняем все записи в столбце 'viewed' значением 0
-        cursor.execute("UPDATE telegram_posts SET viewed = 0")
+        cursor.execute("UPDATE telegram_posts SET tg = tg")
         connection.commit()
         print("Все записи в столбце 'viewed' успешно обновлены до 0.")
 

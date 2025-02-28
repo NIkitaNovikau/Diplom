@@ -108,7 +108,7 @@ def mark_news_as_viewed_rss(news_id):
 
         # Сохраняем изменения
         conn.commit()
-        print(f"Новость '{news_id}' успешно помечена как прочитанная.")
+        print(f"Новость '{news_id}' успешно помечена как прочитанная в RSS.")
     except pymysql.MySQLError as e:
         print(f"Ошибка при пометке новости '{news_id}' как прочитанной: {e}")
     finally:
