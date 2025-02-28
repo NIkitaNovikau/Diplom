@@ -34,7 +34,8 @@ def create_table_rss():
                 link VARCHAR(500) UNIQUE,
                 pub_date DATETIME,
                 description TEXT,
-                image_url VARCHAR(500)
+                image_url VARCHAR(500),
+                viewed BOOL
             )
         ''')
 
@@ -68,9 +69,9 @@ def save_news_rss(source_name, title, link, pub_date, description, image_url):
             print(f"Новость с таким link уже существует: {link}")
         else:
             cursor.execute("""
-                INSERT INTO news (source, title, link, pub_date, description, image_url)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (source_name, title, link, pub_date, description, image_url))
+                INSERT INTO news (source, title, link, pub_date, description, image_url, viewed)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (source_name, title, link, pub_date, description, image_url, 0))
 
             conn.commit()
             print(f"Новость '{title}' сохранена в базе данных.")
@@ -86,7 +87,7 @@ def get_all_news_rss():
     try:
         conn = pymysql.connect(**DB_CONFIG)
         cursor = conn.cursor()
-        cursor.execute("SELECT source, title, link, pub_date FROM news ORDER BY pub_date DESC")
+        cursor.execute("SELECT id,source, title, link, pub_date, viewed FROM news ORDER BY pub_date DESC")
         data = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -94,3 +95,23 @@ def get_all_news_rss():
     except pymysql.MySQLError as e:
         print("Ошибка при работе с базой данных:", e)
         return []
+
+# Функция для пометки новости как прочитанной в базе данных для RSS
+def mark_news_as_viewed_rss(news_id):
+    try:
+        conn = pymysql.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+
+        # Обновляем запись в таблице RSS новостей, где название новости соответствует "title"
+        query = "UPDATE news SET viewed = 1 WHERE id = %s"
+        cursor.execute(query, (news_id,))
+
+        # Сохраняем изменения
+        conn.commit()
+        print(f"Новость '{news_id}' успешно помечена как прочитанная.")
+    except pymysql.MySQLError as e:
+        print(f"Ошибка при пометке новости '{news_id}' как прочитанной: {e}")
+    finally:
+        # Закрываем соединение
+        conn.close()
+

@@ -114,21 +114,21 @@ async def fetch_all_tg():
     tg_sources = get_tg_sources()  # Получаем Telegram источники из базы данных
     for channel_username, source_name in tg_sources:
         try:
-            channel = await client.get_entity(f"t.me/{channel_username}")
+            channel = await client.get_entity(f"t.me/{source_name}")
         except Exception as e:
-            print(f"Ошибка получения канала {channel_username}: {e}")
+            print(f"Ошибка получения канала {source_name}: {e}")
             continue
 
         messages = await client.get_messages(channel, limit=10)
 
         if not messages:
-            print(f"Нет сообщений на канале {channel_username}.")
+            print(f"Нет сообщений на канале {source_name}.")
             continue
 
         for message in messages:
             post_time = message.date.strftime('%Y-%m-%d %H:%M:%S')
             cleaned_text = clean_text_tg(message.text or "")
-            post_link = f"https://t.me/{channel_username}/{message.id}"
+            post_link = f"https://t.me/{source_name}/{message.id}"
 
             if post_exists_tg(post_time, cleaned_text, post_link):
                 print(f"Пропущено: ID {message.id} | {post_link}")
@@ -138,8 +138,8 @@ async def fetch_all_tg():
             if message.media and hasattr(message.media, 'photo'):
                 photo_data = await client.download_media(message.media.photo, file=bytes)
 
-            record_id = save_to_db_tg(post_time, cleaned_text, post_link, source_name, photo_data)
-            print(f"Сохранено: ID {record_id} | Источник: {source_name} | Время: {post_time} | Ссылка: {post_link} | Фото: {'Есть' if photo_data else 'Нет'}")
+            record_id = save_to_db_tg(post_time, cleaned_text, post_link, channel_username, photo_data)
+            print(f"Сохранено: ID {record_id} | Источник: {channel_username} | Время: {post_time} | Ссылка: {post_link} | Фото: {'Есть' if photo_data else 'Нет'}")
 
     await client.disconnect()
 
@@ -199,6 +199,6 @@ def main():
     create_table_tg()
     create_table_list_rss()
     create_table_list_tg()
-    add_sources()
+    #add_sources()
     fetch_all_rss()
     asyncio.run(fetch_all_tg())

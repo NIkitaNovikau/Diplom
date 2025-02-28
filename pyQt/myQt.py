@@ -3,8 +3,8 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPu
     QTableWidgetItem, QTextEdit, QStackedWidget, QSizePolicy, QLineEdit
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon, QPixmap, QBrush, QPalette
-from data.database import get_all_news_rss
-from data.database_tg import get_all_news_tg
+from data.database import get_all_news_rss, mark_news_as_viewed_rss
+from data.database_tg import get_all_news_tg, mark_news_as_viewed_tg
 from data.database_list import get_rss_sources, get_tg_sources, add_tg_source, add_rss_source, remove_rss_source, remove_tg_source
 
 class Page1(QWidget):
@@ -79,22 +79,27 @@ class Page1(QWidget):
 
     # Отображает подробную информацию о выбранной новости
     def show_news_detail(self):
-        selected_rows = set(index.row() for index in self.newsTable.selectedIndexes())  # Получаем выбранные строки
+        selected_rows = set(index.row() for index in self.newsTable.selectedIndexes())
         if not selected_rows:
-            return  # Если ничего не выбрано, выходим из метода
+            return
 
-        # Берем первую выбранную строку (если выбрано несколько)
         row = next(iter(selected_rows))
+        news_id = self.newsTable.item(row, 0).text()  # ID новости
 
-        # Получаем данные из выбранной строки
-        source = self.newsTable.item(row, 0).text()
-        title = self.newsTable.item(row, 1).text()
-        link = self.newsTable.item(row, 2).text()
-        date = self.newsTable.item(row, 3).text()
+        # Помечаем новость как прочитанную в базе данных
+        mark_news_as_viewed_rss(news_id)
+        mark_news_as_viewed_tg(news_id)
+        # Меняем цвет строки на серый
+        for col in range(self.newsTable.columnCount()):
+            self.newsTable.item(row, col).setBackground(QBrush(Qt.GlobalColor.lightGray))
 
-        # Формируем строку с подробной информацией о новости
+        # Отображаем подробную информацию о новости
+        source = self.newsTable.item(row, 1).text()
+        title = self.newsTable.item(row, 2).text()
+        link = self.newsTable.item(row, 3).text()
+        date = self.newsTable.item(row, 4).text()
+
         detail_text = f"Источник: {source}\nЗаголовок: {title}\nСсылка: {link}\nДата: {date}"
-        # Устанавливаем текст в текстовое поле
         self.detailText.setText(detail_text)
 
 
@@ -314,14 +319,17 @@ class NewsApp(QWidget):
             item = QTableWidgetItem(str(value))
             item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
             self.page2.newsTable.setItem(row_list, col, item)
+
     def update_table(self, data, source):
         self.page1.newsTable.setRowCount(len(data))
-        self.page1.newsTable.setColumnCount(4)
-        self.page1.newsTable.setHorizontalHeaderLabels(["Источник", "Заголовок", "Ссылка", "Дата"])
-        self.page1.newsTable.setColumnWidth(0, 150)
-        self.page1.newsTable.setColumnWidth(1, 350)
-        self.page1.newsTable.setColumnWidth(2, 300)
-        self.page1.newsTable.setColumnWidth(3, 150)
+        self.page1.newsTable.setColumnCount(6)
+        self.page1.newsTable.setHorizontalHeaderLabels(["ID", "Источник", "Заголовок", "Ссылка", "Дата", "Просмотрено"])
+        self.page1.newsTable.setColumnWidth(0, 0)
+        self.page1.newsTable.setColumnWidth(1, 150)
+        self.page1.newsTable.setColumnWidth(2, 350)
+        self.page1.newsTable.setColumnWidth(3, 300)
+        self.page1.newsTable.setColumnWidth(4, 150)
+        self.page1.newsTable.setColumnWidth(5, 0)
 
         for row, news in enumerate(data):
             QTimer.singleShot(row * 10, lambda r=row, n=news: self.add_row(r, n))
@@ -332,14 +340,10 @@ class NewsApp(QWidget):
             item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
             self.page1.newsTable.setItem(row, col, item)
 
-    def set_background_image(self, image_path):
-        palette = self.palette()
-        pixmap = QPixmap(image_path)
-        pixmap = pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
-        brush = QBrush(pixmap)
-        palette.setBrush(QPalette.ColorRole.Window, brush)
-        self.setPalette(palette)
-
+        # Проверка флага "viewed" для новости
+        if news[-1] == 1:  # Если поле "viewed" равно 1, значит новость прочитана
+            for col in range(self.page1.newsTable.columnCount()):
+                self.page1.newsTable.item(row, col).setBackground(QBrush(Qt.GlobalColor.lightGray))
 
 # Запуск приложения
 if __name__ == "__main__":
