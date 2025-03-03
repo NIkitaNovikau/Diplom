@@ -1,6 +1,6 @@
 # Данные для подключения к MySQL_tg
 db_config = {
-    "host": "localhost",  # Для докера: "host.docker.internal"
+    "host": "host.docker.internal",  # Для докера: "host.docker.internal"
     "user": "root",
     "password": "1111",
     "database": "tgnews",  # Имя базы данных
@@ -8,7 +8,7 @@ db_config = {
 }
 # Конфигурация подключения к MySQL_rss
 DB_CONFIG = {
-    "host": "localhost",  #для докера нужен host.docker.internal
+    "host": "host.docker.internal",  #для докера нужен host.docker.internal
     "user": "root",
     "password": "1111",
     "database": "news",  # Имя базы данных

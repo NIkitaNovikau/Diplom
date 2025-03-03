@@ -13,16 +13,6 @@ class Page1(QWidget):
 
         self.parent = parent  # Сохраняем ссылку на родительский объект
         self.setUpUI()
-        self.current_source = None  # Храним, какая кнопка была нажата последней
-
-        self.loadRssButton.clicked.connect(self.set_rss_source)
-        self.loadTgButton.clicked.connect(self.set_tg_source)
-
-    def set_rss_source(self):
-        self.current_source = "rss"
-
-    def set_tg_source(self):
-        self.current_source = "tg"
 
     def setUpUI(self):
         layout = QVBoxLayout()
@@ -85,7 +75,7 @@ class Page1(QWidget):
         # Объединяем данные из обоих источников
         combined_data = rss_data + tg_data
         # Обновляем таблицу с комбинированными данными
-        self.parent.update_table(combined_data, "Все новости")
+        self.parent.update_table(combined_data, "all")
 
     # Отображает подробную информацию о выбранной новости
     def show_news_detail(self):
@@ -96,11 +86,6 @@ class Page1(QWidget):
         row = next(iter(selected_rows))
         news_id = self.newsTable.item(row, 0).text()  # ID новости
 
-        # Помечаем новость как прочитанную в базе данных
-        if self.current_source == "rss":
-            mark_news_as_viewed_rss(news_id)
-        elif self.current_source == "tg":
-            mark_news_as_viewed_tg(news_id)
         # Меняем цвет строки на серый
         for col in range(self.newsTable.columnCount()):
             self.newsTable.item(row, col).setBackground(QBrush(Qt.GlobalColor.lightGray))
@@ -110,6 +95,13 @@ class Page1(QWidget):
         title = self.newsTable.item(row, 2).text()
         link = self.newsTable.item(row, 3).text()
         date = self.newsTable.item(row, 4).text()
+        who = self.newsTable.item(row, 6).text()
+
+        # Определяем тип источника на основе данных в таблице
+        if "RSS" in who:
+            mark_news_as_viewed_rss(news_id)
+        elif "TG" in who:
+            mark_news_as_viewed_tg(news_id)
 
         detail_text = f"Источник: {source}\nЗаголовок: {title}\nСсылка: {link}\nДата: {date}"
         self.detailText.setText(detail_text)
@@ -213,9 +205,9 @@ class Page2(QWidget):
         rss_data = get_rss_sources()
         tg_data = get_tg_sources()
         # Объединяем данные из обоих источников
-        combined_data = rss_data + tg_data
+        data = rss_data + tg_data
         # Обновляем таблицу с комбинированными данными
-        self.parent.update_table_list(combined_data, "Все новости")
+        self.parent.update_table_list(data, "Все новости")
 
     def delete_source(self):
         # Получаем, какая кнопка была нажата (RSS или TG)
@@ -335,28 +327,33 @@ class NewsApp(QWidget):
 
     def update_table(self, data, source):
         self.page1.newsTable.setRowCount(len(data))
-        self.page1.newsTable.setColumnCount(6)
-        self.page1.newsTable.setHorizontalHeaderLabels(["ID", "Источник", "Заголовок", "Ссылка", "Дата", "Просмотрено"])
-        self.page1.newsTable.setColumnWidth(0, 0)
-        self.page1.newsTable.setColumnWidth(1, 150)
-        self.page1.newsTable.setColumnWidth(2, 350)
-        self.page1.newsTable.setColumnWidth(3, 300)
-        self.page1.newsTable.setColumnWidth(4, 150)
-        self.page1.newsTable.setColumnWidth(5, 0)
+        self.page1.newsTable.setColumnCount(7)
+        self.page1.newsTable.setHorizontalHeaderLabels(
+            ["ID", "Источник", "Заголовок", "Ссылка", "Дата", "Просмотрено", "КакаяБД"])
 
+        column_widths = [0, 150, 350, 300, 150, 0, 0]
+        for col, width in enumerate(column_widths):
+            self.page1.newsTable.setColumnWidth(col, width)
+
+        # Добавляем все строки сразу
         for row, news in enumerate(data):
-            QTimer.singleShot(row * 10, lambda r=row, n=news: self.add_row(r, n))
+            self.add_row(row, news)
 
     def add_row(self, row, news):
+        if row >= self.page1.newsTable.rowCount():
+            return  # Защита от выхода за границы
+
         for col, value in enumerate(news):
             item = QTableWidgetItem(str(value))
             item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
             self.page1.newsTable.setItem(row, col, item)
 
         # Проверка флага "viewed" для новости
-        if news[-1] == 1:  # Если поле "viewed" равно 1, значит новость прочитана
+        if news[-2] == 1:  # Если поле "viewed" равно 1, значит новость прочитана
             for col in range(self.page1.newsTable.columnCount()):
-                self.page1.newsTable.item(row, col).setBackground(QBrush(Qt.GlobalColor.lightGray))
+                item = self.page1.newsTable.item(row, col)
+                if item:
+                    item.setBackground(QBrush(Qt.GlobalColor.lightGray))
 
 # Запуск приложения
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import re
 import asyncio
 from datetime import datetime
-from data.database import create_database_rss, create_table_rss, save_news_rss, get_all_news_rss
+from data.database import create_database_rss, create_table_rss, save_news_rss
 from telethon import TelegramClient
 from data.database_tg import create_database_tg, create_table_tg, post_exists_tg, save_to_db_tg
 from data.database_list import get_rss_sources, get_tg_sources, create_table_list_rss, create_table_list_tg, add_tg_source, add_rss_source, remove_rss_source, remove_tg_source

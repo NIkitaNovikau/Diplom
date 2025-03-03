@@ -35,7 +35,8 @@ def create_table_rss():
                 pub_date DATETIME,
                 description TEXT,
                 image_url VARCHAR(500),
-                viewed BOOL
+                viewed BOOL,
+                who TEXT
             )
         ''')
 
@@ -69,9 +70,9 @@ def save_news_rss(source_name, title, link, pub_date, description, image_url):
             print(f"Новость с таким link уже существует: {link}")
         else:
             cursor.execute("""
-                INSERT INTO news (source, title, link, pub_date, description, image_url, viewed)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (source_name, title, link, pub_date, description, image_url, 0))
+                INSERT INTO news (source, title, link, pub_date, description, image_url, viewed, who)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (source_name, title, link, pub_date, description, image_url, 0, "RSS"))
 
             conn.commit()
             print(f"Новость '{title}' сохранена в базе данных.")
@@ -87,7 +88,7 @@ def get_all_news_rss():
     try:
         conn = pymysql.connect(**DB_CONFIG)
         cursor = conn.cursor()
-        cursor.execute("SELECT id,source, title, link, pub_date, viewed FROM news ORDER BY pub_date DESC")
+        cursor.execute("SELECT id,source, title, link, pub_date, viewed, who FROM news ORDER BY pub_date DESC")
         data = cursor.fetchall()
         cursor.close()
         conn.close()

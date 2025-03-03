@@ -41,7 +41,8 @@ def create_table_tg():
                 text TEXT,
                 photo LONGBLOB,
                 post_link VARCHAR(255),
-                viewed BOOL
+                viewed BOOL,
+                who TEXT
             )
         """)
         conn.commit()
@@ -114,10 +115,10 @@ def save_to_db_tg(post_time, text, post_link, source, photo_data=None):
         conn = pymysql.connect(**db_config)
         cursor = conn.cursor()
         query = """
-            INSERT INTO telegram_posts (post_time, text, post_link, source, photo, viewed)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO telegram_posts (post_time, text, post_link, source, photo, viewed, who)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        cursor.execute(query, (post_time, text, post_link, source, pymysql.Binary(photo_data) if photo_data else None, 0))
+        cursor.execute(query, (post_time, text, post_link, source, pymysql.Binary(photo_data) if photo_data else None, 0, "TG"))
         conn.commit()
         return cursor.lastrowid
     except pymysql.MySQLError as e:
@@ -133,7 +134,7 @@ def get_all_news_tg():
     try:
         conn = pymysql.connect(**db_config)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, source, text, post_link, post_time, viewed FROM telegram_posts ORDER BY post_time DESC")
+        cursor.execute("SELECT id, source, text, post_link, post_time, viewed, who FROM telegram_posts ORDER BY post_time DESC")
         data = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -161,40 +162,34 @@ def mark_news_as_viewed_tg(news_id):
     finally:
         # Закрываем соединение
         connection.close()
-
-
-# Функция для добавления столбца "viewed" и его заполнения нулями для TG
-def add_viewed_column_tg():
+def add_columns_to_telegram_posts():
     try:
         # Подключение к базе данных
         connection = pymysql.connect(
-            host='localhost',  # Адрес хоста
-            user='root',  # Ваше имя пользователя
-            password='1111',  # Ваш пароль
-            database='tgnews',  # Имя вашей базы данных
+            host='localhost',
+            user='root',
+            password='1111',
+            database='news',
             port=3306
         )
         cursor = connection.cursor()
 
-        # Проверяем, существует ли уже столбец "viewed"
-        cursor.execute("SHOW COLUMNS FROM telegram_posts LIKE 'tg'")
-        result = cursor.fetchone()
+        # Проверяем, существует ли столбец "who"
+        cursor.execute("SHOW COLUMNS FROM news LIKE 'who'")
+        result_who = cursor.fetchone()
 
-        if not result:
-            # Добавляем новый столбец "viewed" с типом INT (по умолчанию значение 0)
-            query = "ALTER TABLE telegram_posts ADD COLUMN tg TEXT DEFAULT tg"
-            cursor.execute(query)
-            print("Столбец 'viewed' успешно добавлен в таблицу tg_news.")
+        if not result_who:
+            # Добавляем новый столбец "who" без DEFAULT
+            cursor.execute("ALTER TABLE news ADD COLUMN who TEXT")
+            cursor.execute("UPDATE news SET who = 'RSS'")
+            connection.commit()  # Сохраняем изменения
+            print("Столбец 'who' успешно добавлен и заполнен значением 'RSS' в таблице telegram_posts.")
         else:
-            print("Столбец 'viewed' уже существует в таблице tg_news.")
-
-        # Заполняем все записи в столбце 'viewed' значением 0
-        cursor.execute("UPDATE telegram_posts SET tg = tg")
-        connection.commit()
-        print("Все записи в столбце 'viewed' успешно обновлены до 0.")
+            print("Столбец 'who' уже существует в таблице telegram_posts.")
 
     except pymysql.MySQLError as e:
-        print(f"Ошибка при добавлении столбца 'viewed': {e}")
+        print(f"Ошибка при добавлении столбцов: {e}")
     finally:
-        # Закрываем соединение
         connection.close()
+
+
