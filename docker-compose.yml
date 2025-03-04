@@ -1,18 +1,31 @@
 
 services:
-  mysql:  
-    image: mysql:8  
-    container_name: mysql_db  
-    environment:  
-      MYSQL_ROOT_PASSWORD: root  
+  mysql:
+    image: mysql:8
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_PASSWORD: 1111
     ports:
-      - "80:3306"  # Пробрасываем порт корректно
+      - "80:3306"
 
-  app:  
-    build: .
-    container_name: python_parser  
-    depends_on:  
+  qt_app:
+    build:
+      context: .
+      dockerfile: ./pyQt/Dockerfile
+    container_name: qt_application
+    depends_on:
       - mysql
     environment:
-      PYTHONPATH: /usr/src  # Добавляем переменную окружения
+      DISPLAY: host.docker.internal:0.0
+      PYTHONPATH: /usr/src/
+
+  parser:
+    build:
+      context: .
+      dockerfile: ./apps/Dockerfile
+    container_name: news_parser
+    depends_on:
+      - mysql
+    environment:
+      PYTHONPATH: /usr/src/

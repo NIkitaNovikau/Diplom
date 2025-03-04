@@ -13,6 +13,7 @@ class Page1(QWidget):
 
         self.parent = parent  # Сохраняем ссылку на родительский объект
         self.setUpUI()
+        self.parent.start_timer()
 
     def setUpUI(self):
         layout = QVBoxLayout()
@@ -58,14 +59,14 @@ class Page1(QWidget):
         # Получаем новости из RSS
         data = get_all_news_rss()
         # Обновляем таблицу данными из RSS
-        self.parent.update_table(data, "RSS")
+        self.parent.update_table(data)
 
     def load_tg_data(self):
         print("[DEBUG] Подключение к MySQL для TG...")
         # Получаем новости из TG
         data = get_all_news_tg()
         # Обновляем таблицу данными из TG
-        self.parent.update_table(data, "TG")
+        self.parent.update_table(data)
 
     def load_all_data(self):
         print("[DEBUG] Подключение к MySQL для всех новостей...")
@@ -75,7 +76,7 @@ class Page1(QWidget):
         # Объединяем данные из обоих источников
         combined_data = rss_data + tg_data
         # Обновляем таблицу с комбинированными данными
-        self.parent.update_table(combined_data, "all")
+        self.parent.update_table(combined_data)
 
     # Отображает подробную информацию о выбранной новости
     def show_news_detail(self):
@@ -325,7 +326,15 @@ class NewsApp(QWidget):
             item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
             self.page2.newsTable.setItem(row_list, col, item)
 
-    def update_table(self, data, source):
+    def start_timer(self):
+        """Запуск таймера для автообновления данных"""
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(lambda: self.update_table(get_all_news_rss() + get_all_news_tg()))
+        self.timer.start(10000)
+    def update_table(self, data):
+        #self.page1.newsTable.scrollToTop()
+        self.page1.newsTable.setSortingEnabled(False)  # Отключаем сортировку перед обновлением
+        self.page1.newsTable.clearContents()  # Очищаем содержимое таблицы
         self.page1.newsTable.setRowCount(len(data))
         self.page1.newsTable.setColumnCount(7)
         self.page1.newsTable.setHorizontalHeaderLabels(
@@ -338,6 +347,9 @@ class NewsApp(QWidget):
         # Добавляем все строки сразу
         for row, news in enumerate(data):
             self.add_row(row, news)
+
+        self.page1.newsTable.setSortingEnabled(True)  # Включаем сортировку после обновления
+        self.page1.newsTable.viewport().update()  # Обновляем интерфейс
 
     def add_row(self, row, news):
         if row >= self.page1.newsTable.rowCount():
