@@ -13,7 +13,6 @@ class Page1(QWidget):
 
         self.parent = parent  # Сохраняем ссылку на родительский объект
         self.setUpUI()
-        self.parent.start_timer()
 
     def setUpUI(self):
         layout = QVBoxLayout()
@@ -42,7 +41,6 @@ class Page1(QWidget):
         # Создаем таблицу для новостей
         self.newsTable = QTableWidget()
         self.newsTable.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)  # Выделение целых строк
-        self.newsTable.setSortingEnabled(True)  # Включаем сортировку по столбцам
         layout.addWidget(self.newsTable)
 
         # Создаем текстовое поле для деталей новости
@@ -60,6 +58,7 @@ class Page1(QWidget):
         data = get_all_news_rss()
         # Обновляем таблицу данными из RSS
         self.parent.update_table(data)
+        #self.parent.start_timer(data)
 
     def load_tg_data(self):
         print("[DEBUG] Подключение к MySQL для TG...")
@@ -67,6 +66,7 @@ class Page1(QWidget):
         data = get_all_news_tg()
         # Обновляем таблицу данными из TG
         self.parent.update_table(data)
+       #self.parent.start_timer(data)
 
     def load_all_data(self):
         print("[DEBUG] Подключение к MySQL для всех новостей...")
@@ -77,6 +77,7 @@ class Page1(QWidget):
         combined_data = rss_data + tg_data
         # Обновляем таблицу с комбинированными данными
         self.parent.update_table(combined_data)
+        #self.parent.start_timer(combined_data)
 
     # Отображает подробную информацию о выбранной новости
     def show_news_detail(self):
@@ -106,8 +107,6 @@ class Page1(QWidget):
 
         detail_text = f"Источник: {source}\nЗаголовок: {title}\nСсылка: {link}\nДата: {date}"
         self.detailText.setText(detail_text)
-
-
 
 class Page2(QWidget):
     def __init__(self, parent=None):
@@ -326,13 +325,14 @@ class NewsApp(QWidget):
             item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
             self.page2.newsTable.setItem(row_list, col, item)
 
-    def start_timer(self):
+    '''def start_timer(self, source):
         """Запуск таймера для автообновления данных"""
         self.timer = QTimer(self)
-        self.timer.timeout.connect(lambda: self.update_table(get_all_news_rss() + get_all_news_tg()))
-        self.timer.start(10000)
+        self.timer.timeout.connect(lambda: self.update_table(source))
+        self.timer.start(2000)'''
+
     def update_table(self, data):
-        #self.page1.newsTable.scrollToTop()
+        self.page1.newsTable.scrollToTop()
         self.page1.newsTable.setSortingEnabled(False)  # Отключаем сортировку перед обновлением
         self.page1.newsTable.clearContents()  # Очищаем содержимое таблицы
         self.page1.newsTable.setRowCount(len(data))
