@@ -15,14 +15,14 @@ except Exception as e:
     print(f"❌ Ошибка при загрузке модели: {e}")
     exit()
 
-# Выборка новостей без важности
+# Выборка новостей без важности и с check = 0
 def fetch_news_from_db():
     try:
         print("🔄 Подключение к базе данных...")
         connection = pymysql.connect(**DB_CONFIG)
         with connection.cursor() as cursor:
-            cursor.execute("SELECT id, title FROM news WHERE importance IS FALSE")
-            news = cursor.fetchall()
+            cursor.execute("SELECT id, title FROM news WHERE `check` = 0")
+            news = cursor.fetchall()  # Получаем список кортежей
         connection.close()
         print(f"Загружено {len(news)} новостей для обработки.")
         return news
@@ -33,7 +33,7 @@ def fetch_news_from_db():
         print(f"❌ Неизвестная ошибка: {e}")
         return []
 
-# Функция предсказания важности новости
+# Функция предсказания важности новости, теперь возвращает и логиты
 def predict_importance(text):
     try:
         inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)
@@ -42,27 +42,43 @@ def predict_importance(text):
         prediction = int(np.argmax(logits))
         print(f"Предсказание: {prediction} (0 - неважная, 1 - важная)")
         print(f"Логиты: {logits}\n")
-        return prediction
+        return prediction, logits  # Возвращаем и предсказание, и логиты
     except Exception as e:
         print(f"❌ Ошибка при предсказании важности: {e}")
-        return 0
+        return 0, None  # Если ошибка, возвращаем None для логитов
 
 # Обновление новостей в БД
 def update_news_in_db():
     try:
         news_list = fetch_news_from_db()
-        if not news_list:
-            print("Нет новостей для обработки.")
+
+        if not news_list:  # Проверяем, есть ли новости для обработки
+            print("❌ Нет новостей для обработки.")
             return
 
         connection = pymysql.connect(**DB_CONFIG)
-        with connection.cursor() as cursor:
-            for news in news_list:
-                importance = predict_importance(news['title'])
-                cursor.execute("UPDATE news SET importance = %s WHERE id = %s", (importance, news['id']))
-            connection.commit()
-        connection.close()
+        print("🔄 Обновление новостей в базе данных...")
+
+        for news in news_list:
+            try:
+                title = news[1]  # news[1] — это title
+                importance, logits = predict_importance(title)
+
+                # После того как нейросеть определила важность, обновляем столбцы
+                query = """
+                    UPDATE news 
+                    SET importance = %s, `check` = %s 
+                    WHERE id = %s
+                """
+                with connection.cursor() as cursor:
+                    cursor.execute(query, (importance, 1, news[0]))  # news[0] — это id
+                connection.commit()
+            except Exception as e:
+                print(f"❌ Ошибка при обработке новости ID {news[0]}: {e}")
+
         print("✅ Обновление завершено!")
+        connection.close()
+
     except pymysql.MySQLError as e:
         print(f"❌ Ошибка при работе с базой данных: {e}")
     except Exception as e:
@@ -87,4 +103,4 @@ def get_important_news_from_db():
         return []
 
 if __name__ == "__main__":
-    get_important_news_from_db()
+    update_news_in_db()

@@ -36,7 +36,9 @@ def create_table_rss():
                 description TEXT,
                 image_url VARCHAR(500),
                 viewed BOOL,
-                who TEXT
+                who TEXT,
+                importance BOOL,
+                `check` BOOL
             )
         ''')
 
@@ -70,9 +72,9 @@ def save_news_rss(source_name, title, link, pub_date, description, image_url):
             print(f"Новость с таким link уже существует: {link}")
         else:
             cursor.execute("""
-                INSERT INTO news (source, title, link, pub_date, description, image_url, viewed, who)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (source_name, title, link, pub_date, description, image_url, 0, "RSS"))
+                INSERT INTO news (source, title, link, pub_date, description, image_url, viewed, who, importance, `check`)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (source_name, title, link, pub_date, description, image_url, 0, "RSS", 0, 0))
 
             conn.commit()
             print(f"Новость '{title}' сохранена в базе данных.")

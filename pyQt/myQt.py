@@ -6,7 +6,7 @@ from PyQt6.QtGui import QIcon, QBrush
 from data.database import get_all_news_rss, mark_news_as_viewed_rss
 from data.database_tg import get_all_news_tg, mark_news_as_viewed_tg
 from data.database_list import get_rss_sources, get_tg_sources, add_tg_source, add_rss_source, remove_rss_source, remove_tg_source
-from pyQt.update_news import get_important_news_from_db
+from pyQt.update_news import fetch_news_from_db, get_important_news_from_db, update_news_in_db, predict_importance
 
 class Page1(QWidget):
     def __init__(self, parent=None):
@@ -40,6 +40,11 @@ class Page1(QWidget):
         self.loadNeironButton.clicked.connect(self.load_neiron_data)
         self.loadNeironButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         button_layout_db.addWidget(self.loadNeironButton)
+
+        self.searchImportantButton = QPushButton("Поиск важных\nновостей")
+        self.searchImportantButton.clicked.connect(self.search_important_news)
+        self.searchImportantButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button_layout_db.addWidget(self.searchImportantButton)
 
         # Добавляем кнопки работы с БД в основное содержимое
         layout.addLayout(button_layout_db)
@@ -91,6 +96,49 @@ class Page1(QWidget):
         # Обновляем таблицу с комбинированными данными
         self.parent.update_table(data)
         #self.parent.start_timer(combined_data)
+
+    def search_important_news(self):
+        print("[DEBUG] Поиск важных новостей...")
+
+        try:
+            # Получаем новости без важности и обновляем их важность в базе данных
+            news_list = fetch_news_from_db()
+            if news_list:
+                update_news_in_db()
+
+            # Теперь получаем все важные новости из базы данных
+            important_news = get_important_news_from_db()
+
+            if important_news:
+                # Обновляем таблицу с важными новостями
+                self.parent.update_table(important_news)
+
+                # Формируем текст для отображения
+                important_news_text = "Важные новости:\n"
+                self.detailText.setText(important_news_text)  # Сначала выводим заголовок
+
+                for news in important_news:
+                    # Получаем предсказания и логиты
+                    prediction, logits = predict_importance(news[2])  # news[2] - это title
+
+                    # Формируем строку для отображения
+                    news_text = f"ID: {news[0]} - {news[2]}\n"
+                    news_text += f"Предсказание важности: {prediction} (0 - неважная, 1 - важная)\n"
+                    news_text += f"Логиты: {logits}\n\n"  # Логиты
+
+                    # Обновляем текстовое поле сразу после получения каждого лога
+                    current_text = self.detailText.toPlainText()  # Получаем текущий текст в поле
+                    self.detailText.setText(current_text + news_text)  # Добавляем новую информацию
+
+                    # Принудительно обновляем интерфейс, чтобы изменения отобразились сразу
+                    self.detailText.repaint()
+                    QApplication.processEvents()  # Обрабатываем события для обновления интерфейса
+
+            else:
+                self.detailText.setText("Не найдено важных новостей.")
+        except Exception as e:
+            print(f"❌ Ошибка при поиске важных новостей: {e}")
+            self.detailText.setText("Произошла ошибка при поиске важных новостей.")
 
     # Отображает подробную информацию о выбранной новости
     def show_news_detail(self):
