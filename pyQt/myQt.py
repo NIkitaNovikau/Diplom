@@ -6,6 +6,7 @@ from PyQt6.QtGui import QIcon, QBrush
 from data.database import get_all_news_rss, mark_news_as_viewed_rss
 from data.database_tg import get_all_news_tg, mark_news_as_viewed_tg
 from data.database_list import get_rss_sources, get_tg_sources, add_tg_source, add_rss_source, remove_rss_source, remove_tg_source
+from pyQt.update_news import get_important_news_from_db
 
 class Page1(QWidget):
     def __init__(self, parent=None):
@@ -34,6 +35,11 @@ class Page1(QWidget):
         self.loadAllButton.clicked.connect(self.load_all_data)
         self.loadAllButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         button_layout_db.addWidget(self.loadAllButton)
+
+        self.loadNeironButton = QPushButton("Загрузить важные\nновости")
+        self.loadNeironButton.clicked.connect(self.load_neiron_data)
+        self.loadNeironButton.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button_layout_db.addWidget(self.loadNeironButton)
 
         # Добавляем кнопки работы с БД в основное содержимое
         layout.addLayout(button_layout_db)
@@ -77,6 +83,13 @@ class Page1(QWidget):
         combined_data = rss_data + tg_data
         # Обновляем таблицу с комбинированными данными
         self.parent.update_table(combined_data)
+        #self.parent.start_timer(combined_data)
+
+    def load_neiron_data(self):
+        print("[DEBUG] Подключение к MySQL для важных новостей...")
+        data = get_important_news_from_db()
+        # Обновляем таблицу с комбинированными данными
+        self.parent.update_table(data)
         #self.parent.start_timer(combined_data)
 
     # Отображает подробную информацию о выбранной новости

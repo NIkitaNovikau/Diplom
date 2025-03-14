@@ -212,7 +212,7 @@ def train_model():
 
 
 def predict_importance():
-    model_path = "./bert_news_model_20250312_0729"
+    model_path = "../pyQt/bert_news_model_20250312_0729"
     model = BertForSequenceClassification.from_pretrained(model_path)
     model.eval()
     while True:
@@ -227,8 +227,8 @@ def predict_importance():
 
 
 if __name__ == "__main__":
-     train_model()
+     #train_model()
     # Построение графиков
     #plot_training_metrics()
     # Определение важности новости
-    #predict_importance()
+     predict_importance()
